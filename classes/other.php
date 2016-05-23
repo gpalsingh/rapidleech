@@ -139,6 +139,10 @@ function getmicrotime() {
 }
 
 function html_error($msg) {
+    /**
+     * Shows error messages.
+     * Also handles tasks like pausing downloads.
+     */
 	if (!empty($GLOBALS['throwRLErrors']) || (strtolower(basename($_SERVER['SCRIPT_NAME'])) == 'audl.php' && isset($_REQUEST['GO']) && $_REQUEST['GO'] == 'GO' && $_REQUEST['server_side'] == 'on' && !empty($GLOBALS['isHost']))) throw new Exception($msg); // throw errors for try and catch usage.
 	else {
 		if (!headers_sent()) include_once(TEMPLATE_DIR.'header.php');
@@ -261,6 +265,9 @@ function _create_list() {
 }
 
 function checkmail($mail) {
+    /**
+     * Checks that the email address is a valid one.
+     */
 	if (strlen($mail) == 0 || strpos($mail, '@') === false || strpos($mail, '.') === false || !preg_match('/^[a-z0-9_\.-]{1,20}@(([a-z0-9-]+\.)+(com|net|org|mil|edu|gov|arpa|info|biz|inc|name|[a-z]{2})|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})$/is', $mail)) return false;
 	return true;
 }
@@ -389,6 +396,7 @@ function link_for_file($filename, $only_link = FALSE, $style = '') {
 }
 
 function lang($id) {
+    // Shows messages in user's language.
 	global $lang;
 	if (empty($lang) || !is_array($lang)) $lang = array();
 	if (basename($GLOBALS['options']['default_language']) != 'en' && file_exists('languages/en.php')) require_once('languages/en.php');
@@ -464,6 +472,9 @@ function jstime() {
 }
 
 function check_referer() {
+    /**
+     * Check that the referer is not external
+     */
 	$refhost = !empty($_SERVER['HTTP_REFERER']) ? cut_str($_SERVER['HTTP_REFERER'], '://', '/') : false;
 	if (empty($refhost)) return;
 
@@ -490,6 +501,10 @@ function check_referer() {
 }
 
 function rebuild_url($url) {
+    /**
+     * Makes link string from
+     * the url array
+     */
 	$url['scheme'] = strtolower($url['scheme']);
 	return $url['scheme'] . '://' . (!empty($url['user']) && !empty($url['pass']) ? rawurlencode($url['user']) . ':' . rawurlencode($url['pass']) . '@' : '') . strtolower($url['host']) . (!empty($url['port']) && $url['port'] != defport(array('scheme' => $url['scheme'])) ? ':' . $url['port'] : '') . (empty($url['path']) ? '/' : $url['path']) . (!empty($url['query']) ? '?' . $url['query'] : '') . (!empty($url['fragment']) ? '#' . $url['fragment'] : '');
 }

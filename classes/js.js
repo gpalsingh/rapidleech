@@ -35,6 +35,10 @@ function table_filelist_refresh_headers() {
 }
 
 function switchCell(m) {
+    /**
+     * Shows the specified table and hides all others.
+     * Used in templates main.php
+     */
 	$('#tb1, #tb2, #tb3, #tb4').hide();
 	$('#navcell1, #navcell2, #navcell3, #navcell4').removeClass('selected');
 	$('#navcell' + m).addClass('selected');

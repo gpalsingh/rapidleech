@@ -17,6 +17,7 @@ if (!defined('RAPIDLEECH')) {
 <td height="100%" style="padding:0px;">
 <span id="hide-plg" style="display: none;">
 <div dir="rtl" align="left" style="overflow-y:scroll; height:150px; padding-left:3px;">
+<!--Show the list of sites-->
 <?php
 ksort($host);
 foreach ($host as $site => $file)
@@ -27,6 +28,7 @@ foreach ($host as $site => $file)
 </div>
 <br />
 </span>
+<!--Show premium accounts if available.-->
 <?php global $premium_acc;
 if ( !empty ( $premium_acc ) )
 {?>
@@ -54,17 +56,20 @@ if ( !empty ( $premium_acc ) )
 }
 ?>
 <aside>
+<!--Show auto transload checkbox.-->
 <?php
 if (!$options['auto_download_disable']) {
 ?>    
 <input class="button-auto" type="button" value="<?php echo lang(334); ?>" onclick="window.open('audl.php');return false;" /><br />
 <?php
 }
+// Show auto upload checkbox.
 if (!$options['auto_upload_disable']) {
 ?>
 <input class="button-auto" type="button" value="<?php echo lang(335); ?>" onclick="window.open('auul.php');return false;" /><br />
 <?php
 }
+// Show auto notes textbox.
 if (!$options['notes_disable']) {
 ?>
 [ <a href="javascript:openNotes();"><?php echo lang(327); ?>.txt</a> ]

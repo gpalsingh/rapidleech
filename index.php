@@ -30,59 +30,98 @@ if (!empty($_GET['image'])) {
 	exit();
 }
 
+// Set proxy.
 $_GET['proxy'] = !empty($_GET['proxy']) ? trim(urldecode($_GET['proxy'])) : '';
+// Check if proxy given when it is enabled.
 if (!empty($_GET['useproxy']) && (empty($_GET['proxy']) || strpos($_GET['proxy'], ':') === false)) html_error(lang(324));
+// Set proxy username and passord.
 $pauth = (!empty($_GET['proxyuser']) && !empty($_GET['proxypass'])) ? base64_encode($_GET['proxyuser'] . ':' . $_GET['proxypass']) : (!empty($_GET['pauth']) ? decrypt(urldecode(trim($_GET['pauth']))) : '');
 
+// Set download path if default not available.
 if (empty($_GET['path']) || $options['download_dir_is_changeable'] == false) {
 	if (empty($_GET['host'])) $_GET['path'] = (substr($options['download_dir'], 0, 6) != 'ftp://') ? realpath(DOWNLOAD_DIR) : $options['download_dir'];
 	else $_GET['saveto'] = (substr($options['download_dir'], 0, 6) != 'ftp://') ? realpath(DOWNLOAD_DIR) : $options['download_dir'];
 }
 
+/* No uploads given in request
+ * This means show upload page?
+ */
 if (empty($_GET['filename']) || empty($_GET['host']) || empty($_GET['path'])) {
 	$LINK = !empty($_GET['link']) ? trim($_GET['link']) : false;
+    /**
+     * If upload link not given then show transload page only.
+     */
 	if (!$LINK) {
 		require_once(CLASS_DIR . 'main.php');
 		exit();
 	}
 
+    // Check that referer is not external.
 	if ($options['ref_check']) check_referer();
 
-	// Detect if it doesn't have a protocol assigned
+	// Check if link doesn't have a protocol assigned.
 	if (stripos($LINK, '://') === false || (strtolower(substr($LINK, 0, 7)) != 'http://' && strtolower(substr($LINK, 0, 6)) != 'ftp://' && strtolower(substr($LINK, 0, 6)) != 'ssl://' && strtolower(substr($LINK, 0, 8)) != 'https://')) {
-		// Automatically assign http://
+		// Use http:// if protocol not given.
 		$LINK = 'http://' . $LINK;
 	}
 
+    /**
+     * Give error if saving to path is activated
+     * but path is not given.
+     */ 
 	if (!empty($_GET['saveto']) && empty($_GET['path'])) html_error(lang(6));
 
+    /**
+     * Check if email is valid if given.
+     */
 	if (!empty($_GET['domail']) && !checkmail($_GET['email'])) {
 		html_error(lang(3));
+        /**
+         * Check that given part size is numeric
+         */
 		if (!empty($_GET['split']) && !is_numeric($_GET['partSize'])) html_error(lang(4)); // T-8: Check this.
 	}
 
+    /**
+     * Make array / dict from link string.
+     */
 	$Url = parse_url($LINK);
 	$Url['scheme'] = strtolower($Url['scheme']);
 	$Url['host'] = strtolower($Url['host']);
 
+    /**
+     * Set cleaned path.
+     */
 	$Url['path'] = (empty($Url['path'])) ? '/' : str_replace('%7C', '|', $Url['path']);
+    // Get cleaned string.
 	$LINK = rebuild_url($Url);
 
+    // Set referer.
 	if (empty($_GET['referer'])) {
 		$Referer = $Url;
 		$Referer['scheme'] = strtolower($Referer['scheme']);
 		// Remove login from Referer
 		unset($Referer['user'], $Referer['pass']);
+        // Convert Referer back to link string.
 		$Referer = rebuild_url($Referer);
 	} else $Referer = trim(rawurldecode($_GET['referer']));
 
+    // Check if protocol is supported.
 	if (!in_array($Url['scheme'], array('http', 'https', 'ftp'))) html_error(lang(5));
 
+    /**
+     * If only one of user or password is given
+     * then ignore them and remove them from the link.
+     */
 	if (empty($Url['user']) xor empty($Url['pass'])) {
 		unset($Url['user'], $Url['pass']);
+        // Get link without username or password.
 		$LINK = rebuild_url($Url);
 	}
 
+    /**
+     * Add iuser and ipass if they are valid.
+     */
 	if (isset($_GET['user_pass']) && $_GET['user_pass'] == 'on' && !empty($_GET['iuser']) && !empty($_GET['ipass'])) {
 		$Url['user'] = $_GET['iuser'];
 		$Url['pass'] = $_GET['ipass'];
@@ -92,6 +131,7 @@ if (empty($_GET['filename']) || empty($_GET['host']) || empty($_GET['path'])) {
 
 	// If Url has user & pass, use them as premium login for plugins and set $auth for direct download.
 	if (!empty($Url['user']) && !empty($Url['pass'])) {
+        // Update headers with information from Url array.
 		if (empty($_REQUEST['premium_acc'])) $_GET['premium_acc'] = $_POST['premium_acc'] = $_REQUEST['premium_acc'] = 'on';
 		$_GET['premium_user'] = $_POST['premium_user'] = $_REQUEST['premium_user'] = $Url['user'];
 		$_GET['premium_pass'] = $_POST['premium_pass'] = $_REQUEST['premium_pass'] = $Url['pass'];
@@ -105,6 +145,7 @@ if (empty($_GET['filename']) || empty($_GET['host']) || empty($_GET['path'])) {
 
 	include(TEMPLATE_DIR . '/header.php');
 
+    // Load download plugins.
 	if (empty($_GET['dis_plug']) || $_GET['dis_plug'] != 'on') {
 		// check Domain-Host
 		foreach ($host as $site => $file) {
@@ -112,17 +153,21 @@ if (empty($_GET['filename']) || empty($_GET['host']) || empty($_GET['path'])) {
 				error_reporting(E_ERROR | E_PARSE | error_reporting()); // Make sure to show any critical error while loading the plugin.
 				require_once(CLASS_DIR . 'http.php');
 				require_once(HOST_DIR . 'DownloadClass.php');
+                // Remove '.php' from file name.
 				$class = substr($file, 0, -4);
+                // Set proxy header key if not already set.
 				if (empty($auth) && $_GET['premium_acc'] == 'on' && !empty($premium_acc["$class"]['proxy'])) {
 					$proxy = $premium_acc["$class"]['proxy'];
-					$_GET['useproxy'] = ($proxy != -1 ? 'on' : false);
-					$_GET['proxy'] = ($proxy != -1 ? $proxy : false);
+					$_GET['useproxy'] = ($proxy == -1 ? false : 'on');
+					$_GET['proxy'] = ($proxy == -1 ? false : $proxy);
 					$pauth = (!empty($premium_acc["$class"]['pauth']) ? base64_encode($premium_acc["$class"]['pauth']) : false);
 				}
 				require_once(HOST_DIR . "download/$file");
+                // Check that host file exists.
 				$firstchar = substr($file, 0, 1);
 				if ($firstchar > 0) $class = "d$class";
 				if (class_exists($class)) {
+                    // Start download the file from the host.
 					$hostClass = new $class();
 					$hostClass->Download($LINK);
 				}
